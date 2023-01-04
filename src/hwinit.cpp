@@ -29,6 +29,7 @@
 #include <libopencm3/stm32/crc.h>
 #include <libopencm3/stm32/flash.h>
 #include <libopencm3/stm32/desig.h>
+#include <libopencm3/stm32/spi.h>
 #include "hwdefs.h"
 #include "hwinit.h"
 #include "stm32_loader.h"
@@ -57,7 +58,42 @@ void clock_setup(void)
    rcc_periph_clock_enable(RCC_CRC);
    rcc_periph_clock_enable(RCC_AFIO); //CAN
    rcc_periph_clock_enable(RCC_CAN1); //CAN
+   rcc_periph_clock_enable(RCC_CAN2); //CAN2
+   rcc_periph_clock_enable(RCC_OTGFS);//USB
+   rcc_periph_clock_enable(RCC_SPI1); //SD
+   rcc_periph_clock_enable(RCC_SPI2);// CAN3,4
 }
+
+void spi1_setup()   //spi1 for SD card
+{
+   gpio_primary_remap(AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_ON, AFIO_MAPR_SPI3_REMAP);
+
+   spi_init_master(SPI1, SPI_CR1_BAUDRATE_FPCLK_DIV_2, SPI_CR1_CPOL_CLK_TO_1_WHEN_IDLE,
+                   SPI_CR1_CPHA_CLK_TRANSITION_2, SPI_CR1_DFF_8BIT, SPI_CR1_MSBFIRST);
+
+   spi_enable_software_slave_management(SPI1);
+   spi_set_nss_high(SPI1);
+   gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO5 | GPIO7);//MOSI , CLK
+   gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO6);//MISO
+   spi_enable(SPI1);
+}
+
+void spi2_setup()   //spi 2 used for CAN3,4
+{
+
+   spi_init_master(SPI2, SPI_CR1_BAUDRATE_FPCLK_DIV_32, SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
+                   SPI_CR1_CPHA_CLK_TRANSITION_1, SPI_CR1_DFF_8BIT, SPI_CR1_MSBFIRST);
+   spi_set_standard_mode(SPI2,0);//set mode 0
+
+   spi_enable_software_slave_management(SPI2);
+   //spi_enable_ss_output(SPI2);
+   spi_set_nss_high(SPI2);
+   gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO15 | GPIO13);//MOSI , CLK
+   gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO14);//MISO
+   spi_enable(SPI2);
+}
+
+
 
 /* Some pins should never be left floating at any time
  * Since the bootloader delays firmware startup by a few 100ms

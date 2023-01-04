@@ -19,7 +19,7 @@
 
 OUT_DIR      = obj
 PREFIX		?= arm-none-eabi
-BINARY		= stm32_yourname
+BINARY		= stm32_Logger
 SIZE        = $(PREFIX)-size
 CC		      = $(PREFIX)-gcc
 CPP	      = $(PREFIX)-g++
@@ -28,7 +28,7 @@ OBJCOPY		= $(PREFIX)-objcopy
 OBJDUMP		= $(PREFIX)-objdump
 MKDIR_P     = mkdir -p
 TERMINAL_DEBUG ?= 0
-CFLAGS		= -Os -Wall -Wextra -Iinclude/ -Ilibopeninv/include -Ilibopencm3/include \
+CFLAGS		= -Os -Wall -Wextra -Iinclude/ -Ilibopeninv/include -Ilibopencm3/include -Iopenfat/include \
              -fno-common -fno-builtin -pedantic -DSTM32F1 -DT_DEBUG=$(TERMINAL_DEBUG) \
 				 -mcpu=cortex-m3 -mthumb -std=gnu99 -ffunction-sections -fdata-sections
 CPPFLAGS    = -Os -Wall -Wextra -Iinclude/ -Ilibopeninv/include -Ilibopencm3/include \
@@ -39,10 +39,10 @@ LDFLAGS    = -Llibopencm3/lib -T$(LDSCRIPT) -march=armv7 -nostartfiles -Wl,--gc-
 OBJSL		  = main.o hwinit.o stm32scheduler.o params.o terminal.o terminal_prj.o \
              my_string.o digio.o sine_core.o my_fp.o printf.o anain.o \
              param_save.o errormessage.o stm32_can.o \
-             picontroller.o terminalcommands.o
+             picontroller.o terminalcommands.o stm32_usb.o stm32_SD.o direntry.o fat_core.o mbr.o unixlike.o write.o \
 
 OBJS     = $(patsubst %.o,obj/%.o, $(OBJSL))
-vpath %.c src/ libopeninv/src
+vpath %.c src/ libopeninv/src/ openfat/src
 vpath %.cpp src/ libopeninv/src
 
 OPENOCD_BASE	= /usr

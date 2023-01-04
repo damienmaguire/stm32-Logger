@@ -34,9 +34,22 @@
 #include "errormessage.h"
 #include "printf.h"
 #include "stm32scheduler.h"
+#include "stm32_usb.h"
+#include "stm32_SD.h"
+
+
 
 static Stm32Scheduler* scheduler;
 static Can* can;
+static Can* can2;
+static bool CAN1Active=false;
+static bool CAN2Active=false;
+static bool CAN3Active=false;
+static bool CAN4Active=false;
+
+static void UpdateCanStats();
+static uint32_t FrameCounter=0;
+
 
 //sample 100ms task
 static void Ms100Task(void)
@@ -48,6 +61,7 @@ static void Ms100Task(void)
    //DigIo::led_out.Clear(); //turns LED off
    //For every entry in digio_prj.h there is a member in DigIo
    DigIo::led_out.Toggle();
+   DigIo::led_out2.Toggle();
    //The boot loader enables the watchdog, we have to reset it
    //at least every 2s or otherwise the controller is hard reset.
    iwdg_reset();
@@ -57,8 +71,11 @@ static void Ms100Task(void)
    Param::SetFloat(Param::cpuload, cpuLoad / 10);
 
    //If we chose to send CAN messages every 100 ms, do this here.
-   if (Param::GetInt(Param::canperiod) == CAN_PERIOD_100MS)
-      can->SendAll();
+   char test1[] = "Hello World 1234567";
+   uint32_t test2 = sizeof(test1);
+   stm32_usb::usb_Status_Poll();
+   UpdateCanStats();
+
 }
 
 //sample 10 ms task
@@ -73,13 +90,60 @@ static void Ms10Task(void)
       ErrorMessage::Post(ERR_TESTERROR);
    }
 
-   //AnaIn::<name>.Get() returns the filtered ADC value
-   //Param::SetInt() sets an integer value.
-   Param::SetInt(Param::testain, AnaIn::test.Get());
-
+    Param::SetInt(Param::FrameCtr,FrameCounter);//update total frames received....this may get big....
    //If we chose to send CAN messages every 10 ms, do this here.
-   if (Param::GetInt(Param::canperiod) == CAN_PERIOD_10MS)
-      can->SendAll();
+
+}
+
+static void SendToUsb(uint32_t id, uint32_t data[2],uint8_t length)
+{
+    uint32_t CanFrame[4]={id,length,data[0],data[1]};
+    uint8_t test6 = sizeof(CanFrame[0])+sizeof(CanFrame[1])+sizeof(CanFrame[2])+sizeof(CanFrame[3]);
+    stm32_usb::usb_Send(CanFrame,test6);
+}
+
+static void SendToSD(uint32_t id, uint32_t data[2],uint8_t length)
+{
+    uint32_t CanFrame[4]={id,length,data[0],data[1]};
+    uint8_t test6 = sizeof(CanFrame[0])+sizeof(CanFrame[1])+sizeof(CanFrame[2])+sizeof(CanFrame[3]);
+    stm32_SD::WriteToFile(CanFrame,test6);
+}
+
+static void CanCallback1(uint32_t id, uint32_t data[2],uint8_t length) //CAN1 Rx callback function
+{
+   SendToUsb(id, data,length);
+   SendToSD(id, data,length);
+   CAN1Active=true;
+   FrameCounter++;
+
+}
+
+static void CanCallback2(uint32_t id, uint32_t data[2],uint8_t length) //CAN2 Rx callback function
+{
+   SendToUsb(id, data,length);
+   CAN2Active=true;
+   FrameCounter++;
+}
+
+static void UpdateCanStats()
+{
+    if(CAN1Active) Param::SetInt(Param::CAN1Stat,1);
+    else Param::SetInt(Param::CAN1Stat,0);
+
+    if(CAN2Active) Param::SetInt(Param::CAN2Stat,1);
+    else Param::SetInt(Param::CAN2Stat,0);
+
+    if(CAN3Active) Param::SetInt(Param::CAN3Stat,1);
+    else Param::SetInt(Param::CAN3Stat,0);
+
+    if(CAN4Active) Param::SetInt(Param::CAN4Stat,1);
+    else Param::SetInt(Param::CAN4Stat,0);
+
+    CAN1Active=false;
+    CAN2Active=false;
+    CAN3Active=false;
+    CAN4Active=false;
+
 }
 
 /** This function is called when the user changes a parameter */
@@ -106,6 +170,7 @@ extern "C" int main(void)
 
    clock_setup(); //Must always come first
    rtc_setup();
+   gpio_primary_remap(AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_ON, AFIO_MAPR_CAN2_REMAP | AFIO_MAPR_CAN1_REMAP_PORTB);
    ANA_IN_CONFIGURE(ANA_IN_LIST);
    DIG_IO_CONFIGURE(DIG_IO_LIST);
    AnaIn::Start(); //Starts background ADC conversion via DMA
@@ -114,16 +179,25 @@ extern "C" int main(void)
    tim_setup(); //Sample init of a timer
    nvic_setup(); //Set up some interrupts
    parm_load(); //Load stored parameters
-
+   spi1_setup();//SD card
+   spi2_setup();//CAN3,4
    Stm32Scheduler s(TIM2); //We never exit main so it's ok to put it on stack
    scheduler = &s;
    //Initialize CAN1, including interrupts. Clock must be enabled in clock_setup()
-   Can c(CAN1, (Can::baudrates)Param::GetInt(Param::canspeed));
+   Can c(CAN1, (Can::baudrates)Param::GetInt(Param::canspeed1), true);
+   Can c2(CAN2, (Can::baudrates)Param::GetInt(Param::canspeed2), true);
    //store a pointer for easier access
    can = &c;
-
+   can2 = &c2;
+    // Set up CAN 1 and 2 callback and messages to listen for
+   c.SetReceiveCallback(CanCallback1);
+   c2.SetReceiveCallback(CanCallback2);
+ //  c.RegisterUserMessage(0x101);
+  // c.RegisterUserMessage(0x102);
    //This is all we need to do to set up a terminal on USART3
    Terminal t(USART3, termCmds);
+
+   stm32_usb::usb_Startup();
 
    //Up to four tasks can be added to each timer scheduler
    //AddTask takes a function pointer and a calling interval in milliseconds.
@@ -141,8 +215,27 @@ extern "C" int main(void)
    //All other processing takes place in the scheduler or other interrupt service routines
    //The terminal has lowest priority, so even loading it down heavily will not disturb
    //our more important processing routines.
+
+   ////////////////////////////////////////////////////////////////////////////////////////////
+   //Here we start to play with the SD driver
+   ///////////////////////////////////////////////////////////////////////////////////
+	// Initialize SD card driver.
+    if(stm32_SD::sdDrvInit())//init the sd card hardware
+    {
+
+    }
+    stm32_SD::OpenFatInit();//wake up the sd card
+    stm32_SD::CreateDir();//Setup a directory for logging to sd card
+    stm32_SD::CreateFile();//create a new file on sd card for logging
+
+
+   ///////////////////////////////////////////////////////////////////////////////////////////
    while(1)
-      t.Run();
+   {
+   t.Run();
+   stm32_usb::usb_Poll();
+   }
+
 
    return 0;
 }
