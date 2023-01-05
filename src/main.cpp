@@ -54,7 +54,7 @@ static uint32_t FrameCounter=0;
 static uint32_t rtc_stamp=0;
 static uint8_t BusId;
 static uint8_t timer1Sec=10;
-char Savvyheader[]=("Time,ID,Extended,Dir,Bus,LEN,D1,D2,D3,D4,D5,D6,D7,D8\n\r");
+char Savvyheader[]=("Time Stamp,ID,Extended,Dir,Bus,LEN,D1,D2,D3,D4,D5,D6,D7,D8\n\r");
 
 
 //sample 100ms task
@@ -114,19 +114,20 @@ static void ProcessCanData(uint32_t id, uint32_t data[2],uint8_t length,uint8_t 
     uint32_t CanFrame[4]={id,length,data[0],data[1]};
     char *dataC = (char *)CanFrame;
     uint32_t idC = dataC[3] << 24 | dataC[2] << 16 | dataC[1] << 8 | dataC[0];//Merge id bytes
-    char output_data[55];
+    char output_data[65];
+    uint8_t output_data_size;
     if(!headerSent)
     {
-        sprintf(output_data,Savvyheader);
+        output_data_size=sprintf(output_data,Savvyheader);
         headerSent=true;
     }
     else
     {
-    sprintf(output_data, "%06d,%08x,%s,%s,%d,%d,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x\n\r",rtc_stamp,idC,extended?"True":"False","Rx",BusId,length,dataC[8],dataC[9],dataC[10],dataC[11],dataC[12],dataC[13],dataC[14],dataC[15]);
+    output_data_size=sprintf(output_data, "%06d,%08x,%s,%s,%d,%d,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x\n\r",rtc_stamp,idC,extended?"True":"False","Rx",BusId,length,dataC[8],dataC[9],dataC[10],dataC[11],dataC[12],dataC[13],dataC[14],dataC[15]);
 
     }
 
-    uint8_t output_data_size=sizeof(output_data);
+    //uint8_t output_data_size=sizeof(output_data);
     uint8_t Log_Modes = Param::GetInt(Param::Logging);
     switch(Log_Modes)
     {
