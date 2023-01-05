@@ -67,7 +67,6 @@ static void Ms100Task(void)
    //DigIo::led_out.Clear(); //turns LED off
    //For every entry in digio_prj.h there is a member in DigIo
    DigIo::led_out.Toggle();
-   DigIo::led_out2.Toggle();
    //The boot loader enables the watchdog, we have to reset it
    //at least every 2s or otherwise the controller is hard reset.
    iwdg_reset();
@@ -80,11 +79,13 @@ static void Ms100Task(void)
    stm32_usb::usb_Status_Poll();
    UpdateCanStats();
 
-   if(timer1Sec==0)//1 second routine
+   if(timer1Sec==0)//1 second routine. used as a canrx timeout to commence a new log and send savvy header
    {
+    DigIo::led_out2.Toggle();
    newFile=true;
    headerSent=false;
    timer1Sec=10;
+   Param::SetInt(Param::opmode,0);
    }
     timer1Sec--;
 }
@@ -104,6 +105,12 @@ static void Ms10Task(void)
     Param::SetInt(Param::FrameCtr,FrameCounter);//update total frames received....this may get big....
    //If we chose to send CAN messages every 10 ms, do this here.
 
+}
+
+static void newSDFile()
+{
+ stm32_SD::CreateFile();//create a new file on sd card for logging
+ newFile=true;
 }
 
 static void ProcessCanData(uint32_t id, uint32_t data[2],uint8_t length,uint8_t BusId)
@@ -127,28 +134,31 @@ static void ProcessCanData(uint32_t id, uint32_t data[2],uint8_t length,uint8_t 
 
     }
 
-    //uint8_t output_data_size=sizeof(output_data);
     uint8_t Log_Modes = Param::GetInt(Param::Logging);
     switch(Log_Modes)
     {
     case 0:
     //Standby mode so ignote all
+    Param::SetInt(Param::opmode,0);
     break;
 
     case 1:
     //SD only
     stm32_SD::WriteToFile(output_data,output_data_size);
+    Param::SetInt(Param::opmode,1);
     break;
 
     case 2:
     //USB Only
     stm32_usb::usb_Send(output_data,output_data_size);
+    Param::SetInt(Param::opmode,1);
     break;
 
     case 3:
     //Both
     stm32_usb::usb_Send(output_data,output_data_size);
     stm32_SD::WriteToFile(output_data,output_data_size);
+    Param::SetInt(Param::opmode,1);
     break;
 
     default:
