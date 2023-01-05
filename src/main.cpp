@@ -120,21 +120,37 @@ static void ProcessCanData(uint32_t id, uint32_t data[2],uint8_t length,uint8_t 
     }
 
     uint8_t output_data_size=sizeof(output_data);
+    uint8_t Log_Modes = Param::GetInt(Param::Logging);
+    switch(Log_Modes)
+    {
+    case 0:
+    //Standby mode so ignote all
+    break;
+
+    case 1:
+    //SD only
+    stm32_SD::WriteToFile(output_data,output_data_size);
+    break;
+
+    case 2:
+    //USB Only
+    stm32_usb::usb_Send(output_data,output_data_size);
+    break;
+
+    case 3:
+    //Both
     stm32_usb::usb_Send(output_data,output_data_size);
     stm32_SD::WriteToFile(output_data,output_data_size);
+    break;
+
+    default:
+
+    break;
+     }
+
+
 }
 
-static void SendToUsb(uint32_t id, uint32_t data[2],uint8_t length)
-{
-
-}
-
-static void SendToSD(uint32_t id, uint32_t data[2],uint8_t length)
-{
-    uint32_t CanFrame[4]={id,length,data[0],data[1]};
-    uint8_t test6 = sizeof(CanFrame[0])+sizeof(CanFrame[1])+sizeof(CanFrame[2])+sizeof(CanFrame[3]);
-//    stm32_SD::WriteToFile(CanFrame,test6);
-}
 
 static void CanCallback1(uint32_t id, uint32_t data[2],uint8_t length) //CAN1 Rx callback function
 {
