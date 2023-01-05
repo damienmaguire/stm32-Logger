@@ -11,7 +11,7 @@
     char statusBuff[30];
 	char dirname[20];
 	char filename[20];
-	char buffer[2000];
+	char buffer[100];
 
 uint8_t sdSPIreadwrite(uint8_t data)
 {
@@ -423,13 +423,13 @@ void stm32_SD::CreateDir()
 
 void stm32_SD::CreateFile()
 {
-            sprintf(filename, "Logfile%d", FileID);
+            sprintf(filename, "Logfile%d.csv", FileID);
             fat_create(&volHandle, filename, O_WRONLY, &fileHandle) == 0;
             Param::SetInt(Param::SDFile,FileID);
             FileID++;//Increment Dir ID for next time around
 }
 
-void stm32_SD::WriteToFile(uint32_t *arr, uint8_t arr_S)
+void stm32_SD::WriteToFile(char *arr, uint8_t arr_S)
 {
             fat_write(&fileHandle, arr,arr_S);
 }

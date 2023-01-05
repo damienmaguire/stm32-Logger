@@ -46,9 +46,13 @@ static bool CAN1Active=false;
 static bool CAN2Active=false;
 static bool CAN3Active=false;
 static bool CAN4Active=false;
-
+static bool extended=false;
+static bool headerSent=false;
 static void UpdateCanStats();
 static uint32_t FrameCounter=0;
+static uint32_t rtc_stamp=0;
+static uint8_t BusId;
+char Savvyheader[]=("Time Stamp,ID,Extended,Dir,Bus,LEN,D1,D2,D3,D4,D5,D6,D7,D8\n\r");
 
 
 //sample 100ms task
@@ -95,24 +99,49 @@ static void Ms10Task(void)
 
 }
 
+static void ProcessCanData(uint32_t id, uint32_t data[2],uint8_t length,uint8_t BusId)
+{
+    if(id>0x7FF)extended=true;
+    else extended=false;
+    rtc_stamp=rtc_get_counter_val();
+    uint32_t CanFrame[4]={id,length,data[0],data[1]};
+    char *dataC = (char *)CanFrame;
+    uint32_t idC = dataC[3] << 24 | dataC[2] << 16 | dataC[1] << 8 | dataC[0];//Merge id bytes
+    char output_data[55];
+    if(!headerSent)
+    {
+        sprintf(output_data,Savvyheader);
+        headerSent=true;
+    }
+    else
+    {
+    sprintf(output_data, "%06d,%08x,%s,%s,%d,%d,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x\n\r",rtc_stamp,idC,extended?"True":"False","Rx",BusId,length,dataC[8],dataC[9],dataC[10],dataC[11],dataC[12],dataC[13],dataC[14],dataC[15]);
+
+    }
+
+    uint8_t output_data_size=sizeof(output_data);
+    stm32_usb::usb_Send(output_data,output_data_size);
+    stm32_SD::WriteToFile(output_data,output_data_size);
+}
+
 static void SendToUsb(uint32_t id, uint32_t data[2],uint8_t length)
 {
-    uint32_t CanFrame[4]={id,length,data[0],data[1]};
-    uint8_t test6 = sizeof(CanFrame[0])+sizeof(CanFrame[1])+sizeof(CanFrame[2])+sizeof(CanFrame[3]);
-    stm32_usb::usb_Send(CanFrame,test6);
+
 }
 
 static void SendToSD(uint32_t id, uint32_t data[2],uint8_t length)
 {
     uint32_t CanFrame[4]={id,length,data[0],data[1]};
     uint8_t test6 = sizeof(CanFrame[0])+sizeof(CanFrame[1])+sizeof(CanFrame[2])+sizeof(CanFrame[3]);
-    stm32_SD::WriteToFile(CanFrame,test6);
+//    stm32_SD::WriteToFile(CanFrame,test6);
 }
 
 static void CanCallback1(uint32_t id, uint32_t data[2],uint8_t length) //CAN1 Rx callback function
 {
-   SendToUsb(id, data,length);
-   SendToSD(id, data,length);
+   //SendToUsb(id, data,length);
+  // SendToSD(id, data,length);
+   BusId=0;
+   ProcessCanData(id,data,length,BusId);
    CAN1Active=true;
    FrameCounter++;
 
@@ -120,7 +149,9 @@ static void CanCallback1(uint32_t id, uint32_t data[2],uint8_t length) //CAN1 Rx
 
 static void CanCallback2(uint32_t id, uint32_t data[2],uint8_t length) //CAN2 Rx callback function
 {
-   SendToUsb(id, data,length);
+   //SendToUsb(id, data,length);
+   BusId=1;
+   ProcessCanData(id,data,length,BusId);
    CAN2Active=true;
    FrameCounter++;
 }

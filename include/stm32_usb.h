@@ -7,6 +7,7 @@ Based on several libopencm3 examples and random key bashing by Damien Maguire.
 #include <libopencm3/usb/usbd.h>
 #include <libopencm3/usb/cdc.h>
 #include <cstddef>
+#include <cstring>
 #include "params.h"
 
 class stm32_usb
@@ -16,7 +17,7 @@ public:
 static void usb_Startup();
 static void usb_Poll();
 static void usb_Status_Poll();
-static void usb_Send(uint32_t *arr, uint8_t arr_S);
+static void usb_Send(char *arr, uint8_t arr_S);
 private:
 
 };

@@ -44,7 +44,7 @@ static int8_t OpenFatInit();
 static void SDTest1();
 static void CreateDir();
 static void CreateFile();
-static void WriteToFile(uint32_t *arr, uint8_t arr_S);
+static void WriteToFile(char *arr, uint8_t arr_S);
 
 private:
 
