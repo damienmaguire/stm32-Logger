@@ -154,7 +154,8 @@ void rtc_setup()
 {
    //Base clock is HSE/128 = 8MHz/128 = 62.5kHz
    //62.5kHz / (624 + 1) = 100Hz
-   rtc_auto_awake(RCC_HSE, 624); //10ms tick
+   //rtc_auto_awake(RCC_HSE, 624); //10ms tick
+   rtc_auto_awake(RCC_HSE, 62); //1ms tick
    rtc_set_counter_val(0);
 }
 

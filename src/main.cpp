@@ -48,11 +48,13 @@ static bool CAN3Active=false;
 static bool CAN4Active=false;
 static bool extended=false;
 static bool headerSent=false;
+static bool newFile=false;
 static void UpdateCanStats();
 static uint32_t FrameCounter=0;
 static uint32_t rtc_stamp=0;
 static uint8_t BusId;
-char Savvyheader[]=("Time Stamp,ID,Extended,Dir,Bus,LEN,D1,D2,D3,D4,D5,D6,D7,D8\n\r");
+static uint8_t timer1Sec=10;
+char Savvyheader[]=("Time,ID,Extended,Dir,Bus,LEN,D1,D2,D3,D4,D5,D6,D7,D8\n\r");
 
 
 //sample 100ms task
@@ -75,11 +77,16 @@ static void Ms100Task(void)
    Param::SetFloat(Param::cpuload, cpuLoad / 10);
 
    //If we chose to send CAN messages every 100 ms, do this here.
-   char test1[] = "Hello World 1234567";
-   uint32_t test2 = sizeof(test1);
    stm32_usb::usb_Status_Poll();
    UpdateCanStats();
 
+   if(timer1Sec==0)//1 second routine
+   {
+   newFile=true;
+   headerSent=false;
+   timer1Sec=10;
+   }
+    timer1Sec--;
 }
 
 //sample 10 ms task
@@ -148,7 +155,7 @@ static void ProcessCanData(uint32_t id, uint32_t data[2],uint8_t length,uint8_t 
     break;
      }
 
-
+    timer1Sec=10;//Reset out 1 second time out as long as we are still being called to process can.
 }
 
 
