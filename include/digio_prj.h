@@ -9,7 +9,6 @@
 */
 
 #define DIG_IO_LIST \
-    DIG_IO_ENTRY(test_in,     GPIOB, GPIO5,  PinMode::INPUT_FLT)   \
     DIG_IO_ENTRY(led_out,     GPIOA, GPIO15, PinMode::OUTPUT)      \
     DIG_IO_ENTRY(led_out2,     GPIOC, GPIO10, PinMode::OUTPUT)      \
     DIG_IO_ENTRY(SD_cs,     GPIOC, GPIO7, PinMode::OUTPUT)      \

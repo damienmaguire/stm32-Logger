@@ -56,16 +56,16 @@ static uint8_t BusId;
 static uint8_t timer1Sec=10;
 char Savvyheader[]=("Time Stamp,ID,Extended,Dir,Bus,LEN,D1,D2,D3,D4,D5,D6,D7,D8\n\r");
 
+static void newSDFile()
+{
+ stm32_SD::CreateFile();//create a new file on sd card for logging
+ newFile=true;
+}
 
 //sample 100ms task
 static void Ms100Task(void)
 {
-   //The following call toggles the LED output, so every 100ms
-   //The LED changes from on to off and back.
-   //Other calls:
-   //DigIo::led_out.Set(); //turns LED on
-   //DigIo::led_out.Clear(); //turns LED off
-   //For every entry in digio_prj.h there is a member in DigIo
+
    DigIo::led_out.Toggle();
    //The boot loader enables the watchdog, we have to reset it
    //at least every 2s or otherwise the controller is hard reset.
@@ -76,18 +76,23 @@ static void Ms100Task(void)
    Param::SetFloat(Param::cpuload, cpuLoad / 10);
 
    //If we chose to send CAN messages every 100 ms, do this here.
+
    stm32_usb::usb_Status_Poll();
    UpdateCanStats();
 
    if(timer1Sec==0)//1 second routine. used as a canrx timeout to commence a new log and send savvy header
    {
     DigIo::led_out2.Toggle();
-   newFile=true;
+   if(!newFile)
+   {
+   newSDFile();//create a new file
+   }
    headerSent=false;
    timer1Sec=10;
    Param::SetInt(Param::opmode,0);
    }
     timer1Sec--;
+
 }
 
 //sample 10 ms task
@@ -96,22 +101,11 @@ static void Ms10Task(void)
    //Set timestamp of error message
    ErrorMessage::SetTime(rtc_get_counter_val());
 
-   if (DigIo::test_in.Get())
-   {
-      //Post a test error message when our test input is high
-      ErrorMessage::Post(ERR_TESTERROR);
-   }
-
     Param::SetInt(Param::FrameCtr,FrameCounter);//update total frames received....this may get big....
    //If we chose to send CAN messages every 10 ms, do this here.
 
 }
 
-static void newSDFile()
-{
- stm32_SD::CreateFile();//create a new file on sd card for logging
- newFile=true;
-}
 
 static void ProcessCanData(uint32_t id, uint32_t data[2],uint8_t length,uint8_t BusId)
 {
@@ -146,6 +140,7 @@ static void ProcessCanData(uint32_t id, uint32_t data[2],uint8_t length,uint8_t 
     //SD only
     stm32_SD::WriteToFile(output_data,output_data_size);
     Param::SetInt(Param::opmode,1);
+    newFile=false;//A new logging file will then spawn 1 sec afer the end of last msg received.
     break;
 
     case 2:
@@ -159,6 +154,7 @@ static void ProcessCanData(uint32_t id, uint32_t data[2],uint8_t length,uint8_t 
     stm32_usb::usb_Send(output_data,output_data_size);
     stm32_SD::WriteToFile(output_data,output_data_size);
     Param::SetInt(Param::opmode,1);
+    newFile=false;//A new logging file will then spawn 1 sec afer the end of last msg received.
     break;
 
     default:
@@ -166,7 +162,8 @@ static void ProcessCanData(uint32_t id, uint32_t data[2],uint8_t length,uint8_t 
     break;
      }
 
-    timer1Sec=10;//Reset out 1 second time out as long as we are still being called to process can.
+    timer1Sec=10;//Reset our 1 second time out as long as we are still being called to process can.
+
 }
 
 
@@ -236,12 +233,10 @@ extern "C" int main(void)
    clock_setup(); //Must always come first
    rtc_setup();
    gpio_primary_remap(AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_ON, AFIO_MAPR_CAN2_REMAP | AFIO_MAPR_CAN1_REMAP_PORTB);
-   ANA_IN_CONFIGURE(ANA_IN_LIST);
    DIG_IO_CONFIGURE(DIG_IO_LIST);
-   AnaIn::Start(); //Starts background ADC conversion via DMA
    write_bootloader_pininit(); //Instructs boot loader to initialize certain pins
 
-   tim_setup(); //Sample init of a timer
+  // tim_setup(); //Sample init of a timer
    nvic_setup(); //Set up some interrupts
    parm_load(); //Load stored parameters
    spi1_setup();//SD card
@@ -257,8 +252,6 @@ extern "C" int main(void)
     // Set up CAN 1 and 2 callback and messages to listen for
    c.SetReceiveCallback(CanCallback1);
    c2.SetReceiveCallback(CanCallback2);
- //  c.RegisterUserMessage(0x101);
-  // c.RegisterUserMessage(0x102);
    //This is all we need to do to set up a terminal on USART3
    Terminal t(USART3, termCmds);
 
@@ -291,7 +284,7 @@ extern "C" int main(void)
     }
     stm32_SD::OpenFatInit();//wake up the sd card
     stm32_SD::CreateDir();//Setup a directory for logging to sd card
-    stm32_SD::CreateFile();//create a new file on sd card for logging
+   // stm32_SD::CreateFile();//create a new file on sd card for logging
 
 
    ///////////////////////////////////////////////////////////////////////////////////////////
