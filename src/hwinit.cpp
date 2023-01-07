@@ -51,6 +51,7 @@ void clock_setup(void)
    rcc_periph_clock_enable(RCC_GPIOC);
    rcc_periph_clock_enable(RCC_GPIOD);
    rcc_periph_clock_enable(RCC_USART3);
+   rcc_periph_clock_enable(RCC_USART2);
    rcc_periph_clock_enable(RCC_TIM2); //Scheduler
    rcc_periph_clock_enable(RCC_TIM4); //Overcurrent / AUX PWM
    rcc_periph_clock_enable(RCC_DMA1);  //ADC, Encoder and UART receive

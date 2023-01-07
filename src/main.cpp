@@ -169,8 +169,6 @@ static void ProcessCanData(uint32_t id, uint32_t data[2],uint8_t length,uint8_t 
 
 static void CanCallback1(uint32_t id, uint32_t data[2],uint8_t length) //CAN1 Rx callback function
 {
-   //SendToUsb(id, data,length);
-  // SendToSD(id, data,length);
    BusId=0;
    ProcessCanData(id,data,length,BusId);
    CAN1Active=true;
@@ -180,7 +178,6 @@ static void CanCallback1(uint32_t id, uint32_t data[2],uint8_t length) //CAN1 Rx
 
 static void CanCallback2(uint32_t id, uint32_t data[2],uint8_t length) //CAN2 Rx callback function
 {
-   //SendToUsb(id, data,length);
    BusId=1;
    ProcessCanData(id,data,length,BusId);
    CAN2Active=true;
@@ -253,7 +250,7 @@ extern "C" int main(void)
    c.SetReceiveCallback(CanCallback1);
    c2.SetReceiveCallback(CanCallback2);
    //This is all we need to do to set up a terminal on USART3
-   Terminal t(USART3, termCmds);
+   Terminal t(USART2, termCmds);
 
    stm32_usb::usb_Startup();
 
