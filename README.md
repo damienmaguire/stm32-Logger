@@ -6,15 +6,25 @@ F4 development branch
 This project aims to create a small and cheap device for logging CAN messages in vehicle and other applications directly to an SD card and/or USB without the need for a pc/laptop to be used and with little end user knowledge or intervention required.
 
 Four CAN Channels. 2 HS CAN and 2 FD/HS CAN using the MCP2518 and TCAN332.
+
 STM32F405/407 MCU
+
 USB Powered via micro USB jack
+
 USB communication via on chip USBCDC controller.
+
 Web interface over wifi for monitoring and configuration using an onboard ESP8266 Wemos module
+
 Independent control of all 4 CAN channels
+
 Auto/manual logging
+
 Aim to have log files in SAVVYCAN format
+
 All 4 can busses on an RJ45 jack allowing the use of cheap twisted pair ethernet cable for all 4 channels
+
 Status and power leds onboard
+
 Can be powered from the vehicle using a usb adapter or via a usb power bank.
 
 # OTA (over the air upgrade)
