@@ -1,27 +1,21 @@
-# stm32-template
-This project can be a starting point to your own STM32 project. It contains facilities that make software
-development easier and ensures compatibility with the esp8266 web interface.
+# stm32-LoggerF4
+Welcome to the EVBMW CanLogger 6000 (Software upgradeable to the CanLogger 9000).
 
-It provides
-- Mostly object oriented syntax
-- A simple, hardware based scheduler for recurring tasks
-- Analog input management, fully independent with DMA
-- Digital I/O management
-- CAN library supporting up to 2 CAN interfaces
-  - hardware filter support
-  - No limitation on number of messages
-  - Automatic mapping from/to parameter module
-  - CAN Open SDO support
-  - Fully interrupt driven
-- Error memory
-- ligthweight fixed point arithmetic
-- string functions to be independent of stdlib
-- Parameter module that interfaces to esp8266 web GUI
-- Saving parameters to flash
-- Serial terminal with custom commands and DMA transfer
-- Mathematical functions (sin/cos, arctan, square root)
-- PI controller class
-- Functions for field oriented control
+F4 development branch
+
+This project aims to create a small and cheap device for logging CAN messages in vehicle and other applications directly to an SD card and/or USB without the need for a pc/laptop to be used and with little end user knowledge or intervention required.
+
+Four CAN Channels. 2 HS CAN and 2 FD/HS CAN using the MCP2518 and TCAN332.
+STM32F405/407 MCU
+USB Powered via micro USB jack
+USB communication via on chip USBCDC controller.
+Web interface over wifi for monitoring and configuration using an onboard ESP8266 Wemos module
+Independent control of all 4 CAN channels
+Auto/manual logging
+Aim to have log files in SAVVYCAN format
+All 4 can busses on an RJ45 jack allowing the use of cheap twisted pair ethernet cable for all 4 channels
+Status and power leds onboard
+Can be powered from the vehicle using a usb adapter or via a usb power bank.
 
 # OTA (over the air upgrade)
 The firmware is linked to leave the 4 kb of flash unused. Those 4 kb are reserved for the bootloader
@@ -51,10 +45,3 @@ The repository provides a project file for Code::Blocks, a rather leightweight I
 For building though, it just executes the above command. Its build system is not actually used.
 Consequently you can use your favority IDE or editor for editing files.
 
-# Adding classes or modules
-As your firmware grows you probably want to add classes. To do so, put the header file in include/ and the 
-source file in src/ . Then add your module to the object list in Makefile that starts in line 43 with .o
-extension. So if your files are called "mymodule.cpp" and "mymodule.h" you add "mymodule.o" to the list.
-
-When changing a header file the build system doesn't always detect this, so you have to "make clean" and
-then make. This is especially important when editing the "*_prj.h" files.
