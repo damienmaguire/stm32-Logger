@@ -9,7 +9,7 @@
 #define USART_BAUDRATE 115200
 //Maximum PWM frequency is 36MHz/2^MIN_PWM_DIGITS
 #define MIN_PWM_DIGITS 11
-#define RCC_CLOCK_SETUP rcc_clock_setup_in_hse_8mhz_out_72mhz
+#define RCC_CLOCK_SETUP() rcc_clock_setup_pll(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_168MHZ])
 
 #define PWM_TIMER     TIM1
 #define PWM_TIMRST    RST_TIM1
@@ -24,20 +24,21 @@
 #define OVER_CUR_NEG       TIM_OC2
 #define OVER_CUR_POS       TIM_OC3
 
-#define TERM_USART         USART2
-#define TERM_USART_TXPIN   GPIO_USART2_TX
-#define TERM_USART_TXPORT  GPIOA
-#define TERM_USART_DMARX   DMA_CHANNEL6
-#define TERM_USART_DMATX   DMA_CHANNEL7 //this means we can not use it on rev1 hardware (TIM3_CH3)
-#define TERM_USART_DR      USART2_DR
+#define TERM_USART         USART3
+#define TERM_USART_TXPIN   GPIO_USART3_TX
+//#define TERM_USART_TXPIN   GPIO10 | GPIO11
+#define TERM_USART_TXPORT  GPIOB
+#define TERM_USART_DMARX   DMA_CHANNEL3
+#define TERM_USART_DMATX   DMA_CHANNEL2 //this means we can not use it on rev1 hardware (TIM3_CH3)
+#define TERM_USART_DR      USART3_DR
 #define TERM_BUFSIZE       128
 
 //Address of parameter block in flash
-#define FLASH_PAGE_SIZE 1024
-#define PARAM_BLKSIZE FLASH_PAGE_SIZE
-#define PARAM_BLKNUM  1   //last block of 1k
-#define CAN1_BLKNUM   2
-#define CAN2_BLKNUM   4
-
+#define FLASH_CONF_BASE 0x08004000
+#define PARAM_BLKSIZE   2048
+#define PARAM_BLKOFFSET 2048
+#define CAN_BLKSIZE     4096
+#define CAN1_BLKOFFSET  4096
+#define CAN2_BLKOFFSET  (CAN1_BLKOFFSET + CAN_BLKSIZE)
 
 #endif // HWDEFS_H_INCLUDED

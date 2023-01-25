@@ -12,18 +12,19 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ *	rom (rx)    : ORIGIN = 0x08000000, LENGTH = 128K
+ 	rom (rx)    : ORIGIN = 0x08020000, LENGTH = 128K
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* Linker script for Olimex STM32-H103 (STM32F103RBT6, 128K flash, 20K RAM). */
+/* Linker script for Olimex STM32-H405 (STM32F405RGT6, 1024K flash, 64K RAM). */
 
 /* Define memory regions. */
 MEMORY
 {
-	rom (rx)    : ORIGIN = 0x08001000, LENGTH = 120K
-	ram (rwx)   : ORIGIN = 0x20000000, LENGTH = 20K
+ 	rom (rx)    : ORIGIN = 0x08020000, LENGTH = 128K
+	ram (rwx)   : ORIGIN = 0x20000000, LENGTH = 64K
 }
 
 

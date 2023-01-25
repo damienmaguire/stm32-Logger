@@ -2,7 +2,7 @@
 <CodeBlocks_project_file>
 	<FileVersion major="1" minor="6" />
 	<Project>
-		<Option title="stm32-Logger" />
+		<Option title="GT86ECU" />
 		<Option makefile_is_custom="1" />
 		<Option pch_mode="2" />
 		<Option compiler="armelfgcc" />
@@ -16,7 +16,7 @@
 		</MakeCommands>
 		<Build>
 			<Target title="Release">
-				<Option output="stm32_yourname" prefix_auto="0" extension_auto="0" />
+				<Option output="stm32_GT86" prefix_auto="0" extension_auto="0" />
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="armelfgcc" />
@@ -37,10 +37,6 @@
 		<Unit filename="include/hwdefs.h" />
 		<Unit filename="include/hwinit.h" />
 		<Unit filename="include/param_prj.h" />
-		<Unit filename="include/stm32_SD.h" />
-		<Unit filename="include/stm32_usb.h">
-			<Option link="1" />
-		</Unit>
 		<Unit filename="libopeninv/include/anain.h" />
 		<Unit filename="libopeninv/include/digio.h" />
 		<Unit filename="libopeninv/include/errormessage.h" />
@@ -73,39 +69,15 @@
 		<Unit filename="libopeninv/src/param_save.cpp" />
 		<Unit filename="libopeninv/src/params.cpp" />
 		<Unit filename="libopeninv/src/picontroller.cpp" />
-		<Unit filename="libopeninv/src/printf.c">
-			<Option compilerVar="CC" />
-		</Unit>
+		<Unit filename="libopeninv/src/printf.cpp" />
 		<Unit filename="libopeninv/src/sine_core.cpp" />
 		<Unit filename="libopeninv/src/stm32_can.cpp" />
 		<Unit filename="libopeninv/src/stm32scheduler.cpp" />
 		<Unit filename="libopeninv/src/terminal.cpp" />
 		<Unit filename="libopeninv/src/terminalcommands.cpp" />
 		<Unit filename="linker.ld" />
-		<Unit filename="openfat/include/openfat.h" />
-		<Unit filename="openfat/include/openfat/blockdev.h" />
-		<Unit filename="openfat/include/openfat/leaccess.h" />
-		<Unit filename="openfat/include/openfat/mbr.h" />
-		<Unit filename="openfat/include/openfat/unixlike.h" />
-		<Unit filename="openfat/src/direntry.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="openfat/src/fat_core.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="openfat/src/mbr.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="openfat/src/unixlike.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="openfat/src/write.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="src/hwinit.cpp" />
 		<Unit filename="src/main.cpp" />
-		<Unit filename="src/stm32_SD.cpp" />
-		<Unit filename="src/stm32_usb.cpp" />
 		<Unit filename="src/terminal_prj.cpp" />
 		<Extensions>
 			<DoxyBlocks>
@@ -119,11 +91,12 @@
 			</DoxyBlocks>
 			<debugger>
 				<remote_debugging>
-					<options conn_type="0" ip_address="localhost" ip_port="3333" additional_cmds="load&#x0A;r" />
+					<options conn_type="0" ip_address="localhost" ip_port="3333" />
 				</remote_debugging>
 				<remote_debugging target="Release">
-					<options conn_type="0" ip_address="localhost" ip_port="3333" additional_cmds="load&#x0A;r" />
+					<options conn_type="0" ip_address="localhost" ip_port="3333" additional_cmds="monitor reset&#x0A;monitor halt&#x0A;load stm32_yourname.elf&#x0A;disconnect&#x0A;target remote localhost:3333&#x0A;monitor reset&#x0A;monitor halt" />
 				</remote_debugging>
+				<search_path add="libopencm3/lib" />
 			</debugger>
 		</Extensions>
 	</Project>

@@ -19,7 +19,7 @@
 
 OUT_DIR      = obj
 PREFIX		?= arm-none-eabi
-BINARY		= stm32_Logger
+BINARY		= stm32_LoggerF4
 SIZE        = $(PREFIX)-size
 CC		      = $(PREFIX)-gcc
 CPP	      = $(PREFIX)-g++
@@ -28,21 +28,21 @@ OBJCOPY		= $(PREFIX)-objcopy
 OBJDUMP		= $(PREFIX)-objdump
 MKDIR_P     = mkdir -p
 TERMINAL_DEBUG ?= 0
-CFLAGS		= -Os -Wall -Wextra -Iinclude/ -Ilibopeninv/include -Ilibopencm3/include -Iopenfat/include \
-             -fno-common -fno-builtin -pedantic -DSTM32F1 -DT_DEBUG=$(TERMINAL_DEBUG) \
-				 -mcpu=cortex-m3 -mthumb -std=gnu99 -ffunction-sections -fdata-sections
-CPPFLAGS    = -Os -Wall -Wextra -Iinclude/ -Ilibopeninv/include -Ilibopencm3/include \
-            -fno-common -std=c++11 -pedantic -DSTM32F1 -DT_DEBUG=$(TERMINAL_DEBUG) \
-				-ffunction-sections -fdata-sections -fno-builtin -fno-rtti -fno-exceptions -fno-unwind-tables -mcpu=cortex-m3 -mthumb
+CFLAGS		= -O0 -g3 -Wall -Wextra -Iinclude/ -Ilibopeninv/include -Ilibopencm3/include \
+             -fno-common -fno-builtin -pedantic -DSTM32F4 \
+				 -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -std=gnu99 -ffunction-sections -fdata-sections
+CPPFLAGS    = -O0 -g3 -Wall -Wextra -Iinclude/ -Ilibopeninv/include -Ilibopencm3/include \
+            -fno-common -std=c++11 -pedantic -DSTM32F4 \
+				-ffunction-sections -fdata-sections -fno-builtin -fno-rtti -fno-exceptions -fno-unwind-tables -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
 LDSCRIPT	  = linker.ld
-LDFLAGS    = -Llibopencm3/lib -T$(LDSCRIPT) -march=armv7 -nostartfiles -Wl,--gc-sections,-Map,linker.map
+LDFLAGS    = -Llibopencm3/lib -T$(LDSCRIPT) -nostartfiles -Wl,--gc-sections,-Map,linker.map
 OBJSL		  = main.o hwinit.o stm32scheduler.o params.o terminal.o terminal_prj.o \
              my_string.o digio.o sine_core.o my_fp.o printf.o anain.o \
              param_save.o errormessage.o stm32_can.o \
-             picontroller.o terminalcommands.o stm32_usb.o stm32_SD.o direntry.o fat_core.o mbr.o unixlike.o write.o \
+             picontroller.o terminalcommands.o
 
 OBJS     = $(patsubst %.o,obj/%.o, $(OBJSL))
-vpath %.c src/ libopeninv/src/ openfat/src
+vpath %.c src/ libopeninv/src
 vpath %.cpp src/ libopeninv/src
 
 OPENOCD_BASE	= /usr
@@ -75,7 +75,7 @@ ${OUT_DIR}:
 
 $(BINARY): $(OBJS) $(LDSCRIPT)
 	@printf "  LD      $(subst $(shell pwd)/,,$(@))\n"
-	$(Q)$(LD) $(LDFLAGS) -o $(BINARY) $(OBJS) -lopencm3_stm32f1
+	$(Q)$(LD) $(LDFLAGS) -o $(BINARY) $(OBJS) -lopencm3_stm32f4
 
 $(OUT_DIR)/%.o: %.c Makefile
 	@printf "  CC      $(subst $(shell pwd)/,,$(@))\n"

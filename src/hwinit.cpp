@@ -28,8 +28,6 @@
 #include <libopencm3/stm32/rtc.h>
 #include <libopencm3/stm32/crc.h>
 #include <libopencm3/stm32/flash.h>
-#include <libopencm3/stm32/desig.h>
-#include <libopencm3/stm32/spi.h>
 #include "hwdefs.h"
 #include "hwinit.h"
 #include "stm32_loader.h"
@@ -44,57 +42,23 @@ void clock_setup(void)
 
    //The reset value for PRIGROUP (=0) is not actually a defined
    //value. Explicitly set 16 preemtion priorities
-   SCB_AIRCR = SCB_AIRCR_VECTKEY | SCB_AIRCR_PRIGROUP_GROUP16_NOSUB;
+   //SCB_AIRCR = SCB_AIRCR_VECTKEY | SCB_AIRCR_PRIGROUP_GROUP16_NOSUB;
 
    rcc_periph_clock_enable(RCC_GPIOA);
    rcc_periph_clock_enable(RCC_GPIOB);
    rcc_periph_clock_enable(RCC_GPIOC);
    rcc_periph_clock_enable(RCC_GPIOD);
+   rcc_periph_clock_enable(RCC_GPIOE);
    rcc_periph_clock_enable(RCC_USART3);
-   rcc_periph_clock_enable(RCC_USART2);
-   rcc_periph_clock_enable(RCC_TIM2); //Scheduler
+   rcc_periph_clock_enable(RCC_TIM3); //Scheduler
    rcc_periph_clock_enable(RCC_TIM4); //Overcurrent / AUX PWM
-   rcc_periph_clock_enable(RCC_DMA1);  //ADC, Encoder and UART receive
+   rcc_periph_clock_enable(RCC_DMA1);  //UART
+   rcc_periph_clock_enable(RCC_DMA2);  //ADC
    rcc_periph_clock_enable(RCC_ADC1);
    rcc_periph_clock_enable(RCC_CRC);
-   rcc_periph_clock_enable(RCC_AFIO); //CAN
    rcc_periph_clock_enable(RCC_CAN1); //CAN
-   rcc_periph_clock_enable(RCC_CAN2); //CAN2
-   rcc_periph_clock_enable(RCC_OTGFS);//USB
-   rcc_periph_clock_enable(RCC_SPI1); //SD
-   rcc_periph_clock_enable(RCC_SPI2);// CAN3,4
+   rcc_periph_clock_enable(RCC_CAN2); //CAN
 }
-
-void spi1_setup()   //spi1 for SD card
-{
-   gpio_primary_remap(AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_ON, AFIO_MAPR_SPI3_REMAP);
-
-   spi_init_master(SPI1, SPI_CR1_BAUDRATE_FPCLK_DIV_2, SPI_CR1_CPOL_CLK_TO_1_WHEN_IDLE,
-                   SPI_CR1_CPHA_CLK_TRANSITION_2, SPI_CR1_DFF_8BIT, SPI_CR1_MSBFIRST);
-
-   spi_enable_software_slave_management(SPI1);
-   spi_set_nss_high(SPI1);
-   gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO5 | GPIO7);//MOSI , CLK
-   gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO6);//MISO
-   spi_enable(SPI1);
-}
-
-void spi2_setup()   //spi 2 used for CAN3,4
-{
-
-   spi_init_master(SPI2, SPI_CR1_BAUDRATE_FPCLK_DIV_32, SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
-                   SPI_CR1_CPHA_CLK_TRANSITION_1, SPI_CR1_DFF_8BIT, SPI_CR1_MSBFIRST);
-   spi_set_standard_mode(SPI2,0);//set mode 0
-
-   spi_enable_software_slave_management(SPI2);
-   //spi_enable_ss_output(SPI2);
-   spi_set_nss_high(SPI2);
-   gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO15 | GPIO13);//MOSI , CLK
-   gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO14);//MISO
-   spi_enable(SPI2);
-}
-
-
 
 /* Some pins should never be left floating at any time
  * Since the bootloader delays firmware startup by a few 100ms
@@ -103,10 +67,8 @@ void spi2_setup()   //spi 2 used for CAN3,4
  */
 void write_bootloader_pininit()
 {
-   uint32_t flashSize = desig_get_flash_size();
-   uint32_t pindefAddr = FLASH_BASE + flashSize * 1024 - PINDEF_BLKNUM * PINDEF_BLKSIZE;
-   const struct pincommands* flashCommands = (struct pincommands*)pindefAddr;
-
+   #ifndef STM32F4
+   struct pincommands *flashCommands = (struct pincommands *)PINDEF_ADDRESS;
    struct pincommands commands;
 
    memset32((int*)&commands, 0, PINDEF_NUMWORDS);
@@ -130,16 +92,17 @@ void write_bootloader_pininit()
    if (commands.crc != flashCommands->crc)
    {
       flash_unlock();
-      flash_erase_page(pindefAddr);
+      flash_erase_sector(11, 2);
 
       //Write flash including crc, therefor <=
       for (uint32_t idx = 0; idx <= PINDEF_NUMWORDS; idx++)
       {
          uint32_t* pData = ((uint32_t*)&commands) + idx;
-         flash_program_word(pindefAddr + idx * sizeof(uint32_t), *pData);
+         flash_program_word(PINDEF_ADDRESS + idx * sizeof(uint32_t), *pData);
       }
       flash_lock();
    }
+   #endif
 }
 
 /**
@@ -147,8 +110,8 @@ void write_bootloader_pininit()
 */
 void nvic_setup(void)
 {
-   nvic_enable_irq(NVIC_TIM2_IRQ); //Scheduler
-   nvic_set_priority(NVIC_TIM2_IRQ, 0xe << 4); //second lowest priority
+   nvic_enable_irq(NVIC_TIM3_IRQ); //Scheduler
+   nvic_set_priority(NVIC_TIM3_IRQ, 0xe << 4); //second lowest priority
 }
 
 void rtc_setup()
@@ -156,8 +119,7 @@ void rtc_setup()
    //Base clock is HSE/128 = 8MHz/128 = 62.5kHz
    //62.5kHz / (624 + 1) = 100Hz
    //rtc_auto_awake(RCC_HSE, 624); //10ms tick
-   rtc_auto_awake(RCC_HSE, 62); //1ms tick
-   rtc_set_counter_val(0);
+   //rtc_set_counter_val(0);
 }
 
 /**
@@ -196,6 +158,6 @@ void tim_setup()
    timer_enable_counter(OVER_CUR_TIMER);
 
    /** setup gpio */
-   gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO7 | GPIO8 | GPIO9);
+   gpio_mode_setup(GPIOB, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO7 | GPIO8 | GPIO9);
 }
 

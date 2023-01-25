@@ -31,12 +31,15 @@
 #include "printf.h"
 #include "param_save.h"
 #include "errormessage.h"
+#include "stm32_can.h"
 #include "terminalcommands.h"
 
 static void LoadDefaults(Terminal* term, char *arg);
 static void Help(Terminal* term, char *arg);
 static void PrintSerial(Terminal* term, char *arg);
 static void PrintErrors(Terminal* term, char *arg);
+static void MapCan1(Terminal* term, char *arg);
+static void MapCan2(Terminal* term, char *arg);
 
 extern "C" const TERM_CMD termCmds[] =
 {
@@ -45,7 +48,8 @@ extern "C" const TERM_CMD termCmds[] =
   { "flag", TerminalCommands::ParamFlag },
   { "stream", TerminalCommands::ParamStream },
   { "json", TerminalCommands::PrintParamsJson },
-  { "can", TerminalCommands::MapCan },
+  { "can1", MapCan1 },
+  { "can2", MapCan2 },
   { "save", TerminalCommands::SaveParameters },
   { "load", TerminalCommands::LoadParameters },
   { "reset", TerminalCommands::Reset },
@@ -55,6 +59,16 @@ extern "C" const TERM_CMD termCmds[] =
   { "errors", PrintErrors },
   { NULL, NULL }
 };
+
+static void MapCan1(Terminal* term, char *arg)
+{
+   TerminalCommands::MapCan(Can::GetInterface(0), term, arg);
+}
+
+static void MapCan2(Terminal* term, char *arg)
+{
+   TerminalCommands::MapCan(Can::GetInterface(1), term, arg);
+}
 
 static void LoadDefaults(Terminal* term, char *arg)
 {
