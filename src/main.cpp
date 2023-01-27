@@ -34,12 +34,26 @@
 #include "errormessage.h"
 #include "printf.h"
 #include "stm32scheduler.h"
+#include "stm32_usb.h"
+#include "stm32_sdio.h"
 
 static Stm32Scheduler* scheduler;
 static Can *can1, *can2;
 
 extern "C" void __cxa_pure_virtual() { while (1); }
-
+static bool CAN1Active=false;
+static bool CAN2Active=false;
+static bool CAN3Active=false;
+static bool CAN4Active=false;
+static bool extended=false;
+static bool headerSent=false;
+static bool newFile=false;
+static void UpdateCanStats();
+static uint32_t FrameCounter=0;
+static uint32_t rtc_stamp=0;
+static uint8_t BusId;
+static uint8_t timer1Sec=10;
+char Savvyheader[]=("Time Stamp,ID,Extended,Dir,Bus,LEN,D1,D2,D3,D4,D5,D6,D7,D8\n\r");
 
 
 
@@ -48,27 +62,26 @@ static void Ms100Task(void)
 {
    //The following call toggles the LED output, so every 100ms
     DigIo::led_out.Toggle();
-   //The LED changes from on to off and back.
-   //Other calls:
-   //DigIo::led_out.Set(); //turns LED on
-   //DigIo::led_out.Clear(); //turns LED off
-   //For every entry in digio_prj.h there is a member in DigIo
-
-   //The boot loader enables the watchdog, we have to reset it
-   //at least every 2s or otherwise the controller is hard reset.
+    UpdateCanStats();
    iwdg_reset();
    //Calculate CPU load. Don't be surprised if it is zero.
    float cpuLoad = scheduler->GetCpuLoad();
-   //This sets a fixed point value WITHOUT calling the parm_Change() function
-//   Param::SetFloat(Param::cpuload, cpuLoad / 10);
-//   Param::SetInt(Param::uptime, Param::GetInt(Param::uptime) + 1);
+   stm32_usb::usb_Status_Poll();
+/*
+      uint8_t bytes[8];
+   bytes[0]=0xB9;
+   bytes[1]=0x1C;
+   bytes[2]=0x94;
+   bytes[3]=0xAD;
+   bytes[4]=0xC3;
+   bytes[5]=0x15;
+   bytes[6]=0x06;
+   bytes[7]=0x63;
+   Can::GetInterface(0)->Send(0x112, (uint32_t*)bytes,8);
+   Can::GetInterface(1)->Send(0x212, (uint32_t*)bytes,8);
 
-   //If we chose to send CAN messages every 100 ms, do this here.
-   if (Param::GetInt(Param::canperiod) == CAN_PERIOD_100MS)
-   {
-      can1->SendAll();
-      can2->SendAll();
-   }
+*/
+
 }
 
 //sample 10 ms task
@@ -78,12 +91,102 @@ static void Ms10Task(void)
 
 
    //If we chose to send CAN messages every 10 ms, do this here.
-   if (Param::GetInt(Param::canperiod) == CAN_PERIOD_10MS)
-   {
-      //Message counter 0-15
-      can1->SendAll();
-      can2->SendAll();
-   }
+
+}
+static void ProcessCanData(uint32_t id, uint32_t data[2],uint8_t length,uint8_t BusId)
+{
+    if(id>0x7FF)extended=true;
+    else extended=false;
+//    rtc_stamp=rtc_get_counter_val();
+    uint32_t CanFrame[4]={id,length,data[0],data[1]};
+    char *dataC = (char *)CanFrame;
+    uint32_t idC = dataC[3] << 24 | dataC[2] << 16 | dataC[1] << 8 | dataC[0];//Merge id bytes
+    char output_data[65];
+    uint8_t output_data_size;
+    if(!headerSent)
+    {
+        output_data_size=sprintf(output_data,Savvyheader);
+        headerSent=true;
+    }
+    else
+    {
+    output_data_size=sprintf(output_data, "%06d,%08x,%s,%s,%d,%d,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x\n\r",rtc_stamp,idC,extended?"True":"False","Rx",BusId,length,dataC[8],dataC[9],dataC[10],dataC[11],dataC[12],dataC[13],dataC[14],dataC[15]);
+
+    }
+
+    uint8_t Log_Modes = Param::GetInt(Param::Logging);
+    switch(Log_Modes)
+    {
+    case 0:
+    //Standby mode so ignote all
+    Param::SetInt(Param::opmode,0);
+    break;
+
+    case 1:
+    //SD only
+//    stm32_SD::WriteToFile(output_data,output_data_size);
+    Param::SetInt(Param::opmode,1);
+    newFile=false;//A new logging file will then spawn 1 sec afer the end of last msg received.
+    break;
+
+    case 2:
+    //USB Only
+    stm32_usb::usb_Send(output_data,output_data_size);
+    Param::SetInt(Param::opmode,1);
+    break;
+
+    case 3:
+    //Both
+    stm32_usb::usb_Send(output_data,output_data_size);
+//    stm32_SD::WriteToFile(output_data,output_data_size);
+    Param::SetInt(Param::opmode,1);
+    newFile=false;//A new logging file will then spawn 1 sec afer the end of last msg received.
+    break;
+
+    default:
+
+    break;
+     }
+
+    timer1Sec=10;//Reset our 1 second time out as long as we are still being called to process can.
+
+}
+static void CanCallback1(uint32_t id, uint32_t data[2],uint8_t length) //CAN1 Rx callback function
+{
+   BusId=0;
+   ProcessCanData(id,data,length,BusId);
+   CAN1Active=true;
+   FrameCounter++;
+
+}
+
+static void CanCallback2(uint32_t id, uint32_t data[2],uint8_t length) //CAN2 Rx callback function
+{
+   BusId=1;
+   ProcessCanData(id,data,length,BusId);
+   CAN2Active=true;
+   FrameCounter++;
+}
+
+static void UpdateCanStats()
+{
+    if(CAN1Active) Param::SetInt(Param::CAN1Stat,1);
+    else Param::SetInt(Param::CAN1Stat,0);
+
+    if(CAN2Active) Param::SetInt(Param::CAN2Stat,1);
+    else Param::SetInt(Param::CAN2Stat,0);
+
+    if(CAN3Active) Param::SetInt(Param::CAN3Stat,1);
+    else Param::SetInt(Param::CAN3Stat,0);
+
+    if(CAN4Active) Param::SetInt(Param::CAN4Stat,1);
+    else Param::SetInt(Param::CAN4Stat,0);
+
+    CAN1Active=false;
+    CAN2Active=false;
+    CAN3Active=false;
+    CAN4Active=false;
+
 }
 
 /** This function is called when the user changes a parameter */
@@ -91,13 +194,9 @@ extern void parm_Change(Param::PARAM_NUM paramNum)
 {
    switch (paramNum)
    {
-      case Param::canspeed:
-         can1->SetBaudrate((Can::baudrates)Param::GetInt(Param::canspeed));
-         can2->SetBaudrate((Can::baudrates)Param::GetInt(Param::canspeed));
-         break;
-      default:
-         //Handle general parameter changes here. Add paramNum labels for handling specific parameters
-         break;
+   default:
+      //Handle general parameter changes here. Add paramNum labels for handling specific parameters
+      break;
    }
 }
 
@@ -126,20 +225,18 @@ extern "C" int main(void)
    Stm32Scheduler s(TIM3); //We never exit main so it's ok to put it on stack
    scheduler = &s;
    //Initialize CAN1, including interrupts. Clock must be enabled in clock_setup()
-   Can c1(CAN1, (Can::baudrates)Param::GetInt(Param::canspeed));
-   Can c2(CAN2, (Can::baudrates)Param::GetInt(Param::canspeed));
+   Can c1(CAN1, (Can::baudrates)Param::GetInt(Param::canspeed1));
+   Can c2(CAN2, (Can::baudrates)Param::GetInt(Param::canspeed2));
    //store a pointer for easier access
    can1 = &c1;
    can2 = &c2;
+   //TODO: Fix can lib to send dlc
+    // Set up CAN 1 and 2 callback and messages to listen for
+   c1.SetReceiveCallback(CanCallback1);
+   c2.SetReceiveCallback(CanCallback2);
 
-   //This is all we need to do to set up a terminal on USART2
    Terminal t(USART3, termCmds);
-
-   //Up to four tasks can be added to each timer scheduler
-   //AddTask takes a function pointer and a calling interval in milliseconds.
-   //The longest interval is 655ms due to hardware restrictions
-   //You have to enable the interrupt (int this case for TIM3) in nvic_setup()
-   //There you can also configure the priority of the scheduler over other interrupts
+   stm32_usb::usb_Startup();
    s.AddTask(Ms10Task, 10);
    s.AddTask(Ms100Task, 100);
 
@@ -148,12 +245,9 @@ extern "C" int main(void)
    Param::SetInt(Param::version, 4);
    parm_Change(Param::PARAM_LAST); //Call callback one for general parameter propagation
 
-   //Now all our main() does is running the terminal
-   //All other processing takes place in the scheduler or other interrupt service routines
-   //The terminal has lowest priority, so even loading it down heavily will not disturb
-   //our more important processing routines.
    while(1)
    {
+      stm32_usb::usb_Poll();
       t.Run();
    }
 

@@ -58,6 +58,8 @@ void clock_setup(void)
    rcc_periph_clock_enable(RCC_CRC);
    rcc_periph_clock_enable(RCC_CAN1); //CAN
    rcc_periph_clock_enable(RCC_CAN2); //CAN
+   rcc_periph_clock_enable(RCC_OTGFS);//Usb
+   rcc_periph_clock_enable(RCC_SDIO);//sd card
 }
 
 /* Some pins should never be left floating at any time

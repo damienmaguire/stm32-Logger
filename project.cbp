@@ -2,7 +2,7 @@
 <CodeBlocks_project_file>
 	<FileVersion major="1" minor="6" />
 	<Project>
-		<Option title="GT86ECU" />
+		<Option title="LoggerF4" />
 		<Option makefile_is_custom="1" />
 		<Option pch_mode="2" />
 		<Option compiler="armelfgcc" />
@@ -37,6 +37,8 @@
 		<Unit filename="include/hwdefs.h" />
 		<Unit filename="include/hwinit.h" />
 		<Unit filename="include/param_prj.h" />
+		<Unit filename="include/stm32_sdio.h" />
+		<Unit filename="include/stm32_usb.h" />
 		<Unit filename="libopeninv/include/anain.h" />
 		<Unit filename="libopeninv/include/digio.h" />
 		<Unit filename="libopeninv/include/errormessage.h" />
@@ -78,6 +80,8 @@
 		<Unit filename="linker.ld" />
 		<Unit filename="src/hwinit.cpp" />
 		<Unit filename="src/main.cpp" />
+		<Unit filename="src/stm32_sdio.cpp" />
+		<Unit filename="src/stm32_usb.cpp" />
 		<Unit filename="src/terminal_prj.cpp" />
 		<Extensions>
 			<DoxyBlocks>

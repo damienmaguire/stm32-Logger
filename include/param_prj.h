@@ -39,7 +39,7 @@
  */
 
  //Define a version string of your firmware here
-#define VER 0.01.A
+#define VER 1.00.R
 
 /* Entries must be ordered as follows:
    1. Saveable parameters (id != 0)
@@ -47,32 +47,50 @@
    3. Display values
  */
 //Next param id (increase when adding new parameter!): 3
-//Next value Id: 2125
-/*   category     name         unit       min     max     default id */
+//Next value Id: 2005
+/*              category     name         unit       min     max     default id */
 #define PARAM_LIST \
-    PARAM_ENTRY(CAT_COMM,           canspeed,    CANSPEEDS, 0,      3,      2,      1   ) \
-    PARAM_ENTRY(CAT_COMM,           canperiod,   CANPERIODS,0,      1,      0,      2   ) \
-    VALUE_ENTRY(opmode,             OPMODES,          2000 ) \
-    VALUE_ENTRY(version,            VERSTR,           2001 ) \
-
-
+    PARAM_ENTRY(CAT_COMM,    canspeed1,    CANSPEEDS, 0,      4,      2,      1   ) \
+    PARAM_ENTRY(CAT_COMM,    canspeed2,    CANSPEEDS, 0,      4,      2,      2   ) \
+    PARAM_ENTRY(CAT_COMM,    canspeed3,    CANSPEEDS, 0,      4,      2,      3   ) \
+    PARAM_ENTRY(CAT_COMM,    canspeed4,    CANSPEEDS, 0,      4,      2,      4   ) \
+    PARAM_ENTRY(CAT_COMM,    Logging,      LOGMODES, 0,      4,      2,      5   ) \
+    PARAM_ENTRY(CAT_COMM,    LogCtrl,      LOGCTRLS, 0,      4,      2,      6   ) \
+    VALUE_ENTRY(opmode,      OPMODES, 2000 ) \
+    VALUE_ENTRY(version,     VERSTR,  2001 ) \
+    VALUE_ENTRY(SDStatus,    SDSTAT,  2002 ) \
+    VALUE_ENTRY(SDType,      SDTYP,   2003 ) \
+    VALUE_ENTRY(SDMbr,       SDMBR,   2005 ) \
+    VALUE_ENTRY(SDfatT,      "dig",   2005 ) \
+    VALUE_ENTRY(USBStat,     USBSTT,   2006 ) \
+    VALUE_ENTRY(CAN1Stat,    CANSTT,   2007 ) \
+    VALUE_ENTRY(CAN2Stat,    CANSTT,   2008 ) \
+    VALUE_ENTRY(CAN3Stat,    CANSTT,   2009 ) \
+    VALUE_ENTRY(CAN4Stat,    CANSTT,   2010 ) \
+    VALUE_ENTRY(SDDir,       "dir",   2011 ) \
+    VALUE_ENTRY(SDFile,      "fil",   2012 ) \
+    VALUE_ENTRY(FrameCtr,    "Frm",   2013 ) \
+    VALUE_ENTRY(cpuload,     "%",     2004 )
 
 
 /***** Enum String definitions *****/
-#define OPMODES      "0=Off, 1=Run"
-#define CANSPEEDS    "0=125k, 1=250k, 2=500k, 3=1M"
-#define CANPERIODS   "0=100ms, 1=10ms"
-#define CAT_TEST     "Testing"
+#define OPMODES      "0=Off, 1=Logging"
+#define SDSTAT      "0=None, 1=Det"
+#define SDMBR       "0=Fail, 1=Ok"
+#define SDTYP       "0=None, 1=SDHC, 2=SDSC, 3=MMC"
+#define USBSTT       "0=Closed, 1=Open"
+#define CANSTT       "0=Idle, 1=Actty"
+#define CANSPEEDS    "0=125k, 1=250k, 2=500k, 3=800k, 4=1M"
+#define LOGMODES      "0=Standby, 1=SDonly, 2=USBonly, 3=Both"
+#define LOGCTRLS      "0=Off, 1=AutoSD, 2=Manual"
 #define CAT_COMM     "Communication"
 
-
-#define VERSTR STRINGIFY(4=VER)
+#define VERSTR STRINGIFY(4=VER-Log)
 
 /***** enums ******/
 
 
-
-enum _canspeeds
+enum _canperiods
 {
    CAN_PERIOD_100MS = 0,
    CAN_PERIOD_10MS,
@@ -85,8 +103,6 @@ enum _modes
    MOD_RUN,
    MOD_LAST
 };
-
-
 
 //Generated enum-string for possible errors
 extern const char* errorListString;
