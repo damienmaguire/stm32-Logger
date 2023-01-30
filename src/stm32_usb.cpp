@@ -239,7 +239,7 @@ static void cdcacm_set_config(usbd_device *usbd_dev, uint16_t wValue)
   //usbd_register_suspend_callback(usbd_dev, suspend_cb);
 }
 
-void stm32_usb::usb_Send(char *arr,uint8_t arr_S)
+void stm32_usb::usb_Send(char *arr,uint16_t arr_S)
 {
  if (usb_connected)
  {

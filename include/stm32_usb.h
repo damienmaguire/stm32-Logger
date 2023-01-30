@@ -19,7 +19,7 @@ public:
 static void usb_Startup();
 static void usb_Poll();
 static void usb_Status_Poll();
-static void usb_Send(char *arr, uint8_t arr_S);
+static void usb_Send(char *arr, uint16_t arr_S);
 private:
 
 };

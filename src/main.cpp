@@ -54,6 +54,14 @@ static uint32_t rtc_stamp=0;
 static uint8_t BusId;
 static uint8_t timer1Sec=10;
 char Savvyheader[]=("Time Stamp,ID,Extended,Dir,Bus,LEN,D1,D2,D3,D4,D5,D6,D7,D8\n\r");
+char output_data[700];
+char* pdata = output_data;
+uint16_t output_data_size=0;
+static uint16_t bufCnt=0;
+static uint8_t queueCnt=0;
+static bool dumpBuffer=false;
+static uint16_t test9=0;
+int z=0;
 
 
 
@@ -82,38 +90,31 @@ static void Ms100Task(void)
 
 */
 
+   if(timer1Sec==0)//1 second routine. used as a canrx timeout to commence a new log and send savvy header
+   {
+    //DigIo::led_out2.Toggle();
+
+   headerSent=false;
+   timer1Sec=10;
+   Param::SetInt(Param::opmode,0);
+   }
+    timer1Sec--;
+
 }
 
 //sample 10 ms task
 static void Ms10Task(void)
 {
 
-
+Param::SetInt(Param::FrameCtr,FrameCounter);//update total frames received....this may get big....
 
    //If we chose to send CAN messages every 10 ms, do this here.
 
 }
-static void ProcessCanData(uint32_t id, uint32_t data[2],uint8_t length,uint8_t BusId)
+
+static void BufferDumper(void)
 {
-    if(id>0x7FF)extended=true;
-    else extended=false;
-//    rtc_stamp=rtc_get_counter_val();
-    uint32_t CanFrame[4]={id,length,data[0],data[1]};
-    char *dataC = (char *)CanFrame;
-    uint32_t idC = dataC[3] << 24 | dataC[2] << 16 | dataC[1] << 8 | dataC[0];//Merge id bytes
-    char output_data[65];
-    uint8_t output_data_size;
-    if(!headerSent)
-    {
-        output_data_size=sprintf(output_data,Savvyheader);
-        headerSent=true;
-    }
-    else
-    {
-    output_data_size=sprintf(output_data, "%06d,%08x,%s,%s,%d,%d,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x\n\r",rtc_stamp,idC,extended?"True":"False","Rx",BusId,length,dataC[8],dataC[9],dataC[10],dataC[11],dataC[12],dataC[13],dataC[14],dataC[15]);
-
-    }
-
+    Param::SetInt(Param::BufferS,output_data_size);
     uint8_t Log_Modes = Param::GetInt(Param::Logging);
     switch(Log_Modes)
     {
@@ -132,13 +133,17 @@ static void ProcessCanData(uint32_t id, uint32_t data[2],uint8_t length,uint8_t 
     case 2:
     //USB Only
     stm32_usb::usb_Send(output_data,output_data_size);
+    dumpBuffer=false;
     Param::SetInt(Param::opmode,1);
     break;
 
     case 3:
     //Both
+
     stm32_usb::usb_Send(output_data,output_data_size);
-//    stm32_SD::WriteToFile(output_data,output_data_size);
+    //    stm32_SD::WriteToFile(output_data,output_data_size);
+    dumpBuffer=false;
+
     Param::SetInt(Param::opmode,1);
     newFile=false;//A new logging file will then spawn 1 sec afer the end of last msg received.
     break;
@@ -147,6 +152,38 @@ static void ProcessCanData(uint32_t id, uint32_t data[2],uint8_t length,uint8_t 
 
     break;
      }
+
+}
+
+static void ProcessCanData(uint32_t id, uint32_t data[2],uint8_t length,uint8_t BusId)
+{
+    if(id>0x7FF)extended=true;
+    else extended=false;
+//    rtc_stamp=rtc_get_counter_val();
+    uint32_t CanFrame[4]={id,length,data[0],data[1]};
+    char *dataC = (char *)CanFrame;
+    uint32_t idC = dataC[3] << 24 | dataC[2] << 16 | dataC[1] << 8 | dataC[0];//Merge id bytes
+    if(!headerSent)
+    {
+       // output_data_size=sprintf(output_data,Savvyheader);
+        headerSent=true;
+    }
+    else
+    {
+     z=sprintf(pdata, "%06d,%08x,%s,%s,%d,%d,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x\r\n",rtc_stamp,idC,extended?"True":"False","Rx",BusId,length,dataC[8],dataC[9],dataC[10],dataC[11],dataC[12],dataC[13],dataC[14],dataC[15]);
+     pdata +=z;
+    //output_data_size=strlen(output_data);
+    bufCnt++;
+    queueCnt++;
+    if(queueCnt==2)
+    {
+    pdata=0;
+    queueCnt=0;
+    bufCnt=0;
+    dumpBuffer=true;
+    output_data_size=z;
+    }
+    }
 
     timer1Sec=10;//Reset our 1 second time out as long as we are still being called to process can.
 
@@ -249,6 +286,7 @@ extern "C" int main(void)
    {
       stm32_usb::usb_Poll();
       t.Run();
+      if(dumpBuffer) BufferDumper();
    }
 
 

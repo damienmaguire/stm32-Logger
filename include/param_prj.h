@@ -70,6 +70,7 @@
     VALUE_ENTRY(SDDir,       "dir",   2011 ) \
     VALUE_ENTRY(SDFile,      "fil",   2012 ) \
     VALUE_ENTRY(FrameCtr,    "Frm",   2013 ) \
+    VALUE_ENTRY(BufferS,     "dig",   2014 ) \
     VALUE_ENTRY(cpuload,     "%",     2004 )
 
 
